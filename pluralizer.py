@@ -2,65 +2,49 @@
 # encoding: utf-8
 """
 implementing a pluralizer
+
+using closures!
 """
 
 import re
 
-#############
-#  classic  #
-#############
+def build_match_and_apply_functions(pattern, search, replace):
+    def matches_rule(word):
+        return re.search(pattern, word)
 
-def plural_classic(noun):
+    def apply_rule(word):
+        return re.sub(search, replace, word)
 
-    if re.search('[sxz]$', noun):
-        return re.sub('$', 'es', noun)
-    elif re.search('[^aeioudgkprt]h$]', noun):      #carret means negation
-        return re.sub('$', 'es', noun)
-    elif re.search('[^aeiou]y$]', noun):
-        return re.sub('y$', 'ies', noun)
-    else:
-        return noun + 's'
-
-################
-#  variation1  #
-################
-
-def match_sxz(noun):
-    re.search('[sxz]$', noun)
-
-def apply_sxz(noun):
-    return re.sub('$', 'es', noun)
-
-def match_h(noun):
-    re.search('[^aeioudgkprt]h$]', noun)
-
-def apply_h(noun):
-    return re.sub('$', 'es', noun)
+    return (matches_rule, apply_rule)
 
 
-def match_y(noun):
-    re.search('[^aeiou]y$]', noun)
+patterns = \
+  (
+    ('[sxz]$',           '$',  'es'),
+    ('[^aeioudgkprt]h$', '$',  'es'),
+    ('(qu|[^aeiou])y$',  'y$', 'ies'),
+    ('$',                '$',  's')
+  )
 
-def apply_y(noun):
-    return re.sub('y$', 'ies', noun)
 
-def match_default(noun):
-    return True
+rules = [ build_match_and_apply_functions(pattern, search, replace) 
+            for (pattern, search, replace) in patterns ]
 
-def apply_default(noun):
-    return noun + 's'
-
-rules = (
-        (match_sxz, apply_sxz),
-        (match_h, apply_h), 
-        (match_y, apply_y),
-        (match_default, apply_default),
-        )
+# here is the result
+# rules = (
+#         (match_sxz, apply_sxz),
+#         (match_h, apply_h), 
+#         (match_y, apply_y),
+#         (match_default, apply_default),
+#         )
 
 def plural(noun):
     for matches_rule, apply_rule in rules:
         if matches_rule(noun):
             return apply_rule(noun)
 
+
 if __name__ == '__main__':
+    # print( rules )
     print( plural('car') )
+
