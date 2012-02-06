@@ -3,7 +3,7 @@
 """
 implementing a pluralizer
 
-using closures!
+same a version 2 but reads from a file
 """
 
 import re
@@ -18,17 +18,11 @@ def build_match_and_apply_functions(pattern, search, replace):
     return (matches_rule, apply_rule)
 
 
-patterns = \
-  (
-    ('[sxz]$',           '$',  'es'),
-    ('[^aeioudgkprt]h$', '$',  'es'),
-    ('(qu|[^aeiou])y$',  'y$', 'ies'),
-    ('$',                '$',  's')
-  )
-
-
-rules = [ build_match_and_apply_functions(pattern, search, replace) 
-            for (pattern, search, replace) in patterns ]
+rules =[]
+with open('plural4-rules.txt', encoding='utf-8') as pattern_file:
+    for line in pattern_file:
+        pattern, search, replace = line.split(None, 3)
+        rules.append(build_match_and_apply_functions( pattern, search, replace ) )
 
 # here is the result
 # rules = (
@@ -47,4 +41,5 @@ def plural(noun):
 if __name__ == '__main__':
     # print( rules )
     print( plural('car') )
+
 
