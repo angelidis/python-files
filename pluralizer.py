@@ -2,28 +2,12 @@
 # encoding: utf-8
 """
 implementing a pluralizer
-plural 5
 
-same a version 2 but reads from a file
+previous implementation used generators
+this version uses an iterator
 """
 
 import re
-
-
-# The presence of the yield keyword in make_counter means that this is not a
-# normal function. It is a special kind of function which generates values one at
-# a time. You can think of it as a resumable function. Calling it will return a
-# generator that can be used to generate successive values of x.
-
-# this function returns a generator object
-def rules(rules_filename):
-    with open(rules_filename, encoding='utf-8') as pattern_file:
-        for line in pattern_file:
-            pattern, search, replace = line.split(None, 3)
-            # All variables, local state, &c. are saved on yield and restored on next()
-            # yield:
-            #   saves the state of everything and returns the current value of build_and...
-            yield build_match_and_apply_functions( pattern, search, replace )
 
 def build_match_and_apply_functions(pattern, search, replace):
     def matches_rule(word):
@@ -34,29 +18,52 @@ def build_match_and_apply_functions(pattern, search, replace):
 
     return (matches_rule, apply_rule)
 
-def plural(noun, rules_filename='plural4-rules.txt'):
-    # Since rules() is a generator, you can use it directly in a for loop.
-    for matches_rule, apply_rule in rules(rules_filename):
+class LazyRules:
+    """Docstring for LazyRules """
+
+    rules_filename = "plural4-rules.txt"    #class variable, shared across all 
+                                            # instances of the LazyRules class
+
+    def __init__(self):
+        self.pattern_file = open(self.rules_filename, encoding='utf-8') #on instantiation read the file
+        self.cache = []
+
+    def __iter__(self):
+        self.cache_index = 0
+        return self
+    
+    def __next__(self):
+        self.cache_index += 1
+        if len( self.cache ) >= self.cache_index:
+            return self.cache[self.cache_index - 1]
+
+        if self.pattern_file.closed:
+            raise StopIteration
+
+        # The file pointer will stay wherever we stopped reading, waiting for the next readline() command.
+        line = self.pattern_file.readline()
+        if not line:
+            self.pattern_file.close()
+            raise StopIteration
+
+        pattern, search, replace = line.split(None, 3)
+        funcs = build_match_and_apply_functions( pattern, search, replace )
+
+        self.cache.append(funcs)
+        return funcs
+
+# When the module is imported, it creates a single instance of the LazyRules
+# class, called rules, which opens the pattern file but does not read from it.
+rules = LazyRules()
+
+
+def plural(noun):
+    for matches_rule, apply_rule in rules:
         if matches_rule(noun):
             return apply_rule(noun)
-    raise ValueError('no matching rule for {0}'.format(noun) )
 
 if __name__ == '__main__':
     # print( rules )
     print( plural('car') )
 
 
-###################################
-#  benefit from using generators  #
-###################################
-
-# What have you gained over stage 4? Startup time. In stage 4, when you imported
-# the plural4 module, it read the entire patterns file and built a list of all
-# the possible rules, before you could even think about calling the plural()
-# function. With generators, you can do everything lazily: you read the first
-# rule and create functions and try them, and if that works you don’t ever read
-# the rest of the file or create any other functions.
-
-# What have you lost? Performance! Every time you call the plural() function, the
-# rules() generator starts over from the beginning — which means re-opening the
-# patterns file and reading from the beginning, one line at a time.
